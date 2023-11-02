@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-dc = Path("C:/Users/User/Desktop/Program Analysis/course-02242-examples")
+dc = Path("../")
 
 classes = {}
 for f in dc.glob("**/*.json"):
@@ -11,15 +11,18 @@ for f in dc.glob("**/*.json"):
 
 methods = {}
 for cls in classes.values():
-    for m in cls["methods"]:        
-        methods[(cls["name"],m["name"])] = m
+    for m in cls["methods"]:
+        methods[(cls["name"], m["name"])] = m
+
 
 def find_method(am):
     return methods[(am)]
-        
+
+
 def print_bytecode(am):
     m = find_method(am)
     assert m is not None
     print(m["code"]["bytecode"])
 
-#print_bytecode(("eu/bogoe/dtu/exceptional/Arrays", "dependsOnLattice1"))
+
+# print_bytecode(("eu/bogoe/dtu/exceptional/Arrays", "dependsOnLattice1"))
