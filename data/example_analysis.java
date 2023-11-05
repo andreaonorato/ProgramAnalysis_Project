@@ -30,12 +30,18 @@ public class example_analysis {
     	if(efficiency<=120) {
     		//it means that I'm in the first efficiency class between 0 and 120 --> [0 , 120]
     		//there are other parameters to correct the efficiency
-    		correction = Math.min(colorGrade, exposure);
+    		correction = exposure
+			if (colorGrade < exposure){
+				correction = colorGrade
+			}
     		efficiency = efficiency - correction;
     		return efficiency; //here the return can be a negative number in certain cases
     		
     	}else {
-    		correction = Math.min(colorGrade, exposure);
+			correction = exposure
+			if (colorGrade < exposure){
+				correction = colorGrade
+			}
     		efficiency = efficiency - correction;
     		return efficiency; 
     	}

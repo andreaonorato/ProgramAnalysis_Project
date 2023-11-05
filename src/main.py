@@ -33,8 +33,8 @@ class Concolic:
 
             for _ in range(k):
                 bc = self.bytecode[pc]
+                print(pc)
                 pc += 1
-
                 print(state)
                 print(bc)
                 print(path)
@@ -50,11 +50,12 @@ class Concolic:
                     case "ifz":
                         v = state.pop()
                         z = ConcolicValue.from_const(0)
-                        r = ConcolicValue.compare(z, bc.condition, v)
+                        r = ConcolicValue.compare(v, bc.condition, z)
                         if r.concrete:
                             pc = bc.target
                             path += [r.symbolic]
                         else:
+                            print("false")
                             path += [z3.simplify(z3.Not(r.symbolic))]
                     case "load":
                         state.load(bc.index)

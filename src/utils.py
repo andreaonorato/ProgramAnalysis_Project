@@ -46,7 +46,8 @@ class ConcolicValue:
 
         else:
             raise Exception(f"Unknown compartition: {copr}")
-
+        a = getattr(self.symbolic, opr)
+        b = other.symbolic
         return ConcolicValue(
             getattr(self.concrete, opr)(other.concrete),
             z3.simplify(getattr(self.symbolic, opr)(other.symbolic)),

@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-dc = Path("../")
+dc = Path("../data/")
 
 classes = {}
 for f in dc.glob("**/*.json"):
