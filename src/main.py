@@ -10,7 +10,7 @@ class Concolic:
         self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
         self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
 
-    def run(self, k=1000):
+    def run(self, output_range, k=1000):
         # print(bytecode)
 
         while self.solver.check() == z3.sat:
@@ -95,7 +95,29 @@ class Concolic:
                         if bc.type is None:
                             result = "return"
 
-                        result = f"returned {state.pop()}"
+                        return_concolic = state.pop()
+                        check_return = z3.Solver()
+                        check_return.add(
+                            z3.simplify(
+                                z3.And(
+                                    *path,
+                                    getattr(return_concolic.symbolic, "__lt__")(
+                                        output_range
+                                    ),
+                                )
+                            )
+                        )
+                        if check_return.check() == z3.sat:
+                            invalid_return = check_return.model()
+                            input = [
+                                invalid_return.eval(p, model_completion=True).as_long()
+                                for p in self.params
+                            ]
+
+                            raise Exception(
+                                f"Found out of range output eg: {list(zip(self.params,input))}"
+                            )
+                        result = f"returned {return_concolic}"
                         break
 
                     case "if":
@@ -129,4 +151,4 @@ class Concolic:
 
 
 c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
-c.run()
+c.run(z3.IntVal(0))
