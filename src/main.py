@@ -101,8 +101,10 @@ class Concolic:
                             z3.simplify(
                                 z3.And(
                                     *path,
-                                    getattr(return_concolic.symbolic, "__lt__")(
-                                        output_range
+                                    z3.Not(
+                                        getattr(
+                                            return_concolic.symbolic, output_range[0]
+                                        )(output_range[1])
                                     ),
                                 )
                             )
@@ -153,5 +155,6 @@ class Concolic:
             self.solver.add(z3.Not(path_constraint))
 
 
-c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
-c.run(z3.IntVal(0))
+c = Concolic(find_method(("example_loop", "ShowBalance")))
+# c.run(z3.IntVal(0))
+c.run(("__ne__", z3.IntVal(0)))
