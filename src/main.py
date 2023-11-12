@@ -33,12 +33,12 @@ class Concolic:
 
             for _ in range(k):
                 bc = self.bytecode[pc]
-                print(pc)
+                # print(pc)
                 pc += 1
-                print(state)
-                print(bc)
-                print(path)
-                print("---------")
+                # print(state)
+                # print(bc)
+                # print(path)
+                # print("---------")
 
                 match bc.opr:
                     case "get":
@@ -113,9 +113,12 @@ class Concolic:
                                 invalid_return.eval(p, model_completion=True).as_long()
                                 for p in self.params
                             ]
+                            invalid_output = invalid_return.eval(
+                                return_concolic.symbolic
+                            )
 
                             raise Exception(
-                                f"Found out of range output eg: {list(zip(self.params,input))}"
+                                f"Found out of range output {invalid_output} for inputs: {list(zip(self.params,input))}"
                             )
                         result = f"returned {return_concolic}"
                         break
