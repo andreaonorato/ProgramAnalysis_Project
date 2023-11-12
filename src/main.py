@@ -33,12 +33,12 @@ class Concolic:
 
             for _ in range(k):
                 bc = self.bytecode[pc]
-                # print(pc)
+                print(pc)
                 pc += 1
-                # print(state)
-                # print(bc)
-                # print(path)
-                # print("---------")
+                print(state)
+                print(bc)
+                print(path)
+                print("---------")
 
                 match bc.opr:
                     case "get":
@@ -156,5 +156,7 @@ class Concolic:
 
 
 c = Concolic(find_method(("example_loop", "ShowBalance")))
-# c.run(z3.IntVal(0))
 c.run(("__ne__", z3.IntVal(0)))
+
+# c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
+# c.run(("__ge__", z3.IntVal(0)))
