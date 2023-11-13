@@ -10,6 +10,7 @@ class Concolic:
         self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
         self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
         self.stateMap = {}
+        self.constraintMap = {}
 
     def run(self, output_range, k=1000):
         # print(bytecode)
@@ -35,6 +36,7 @@ class Concolic:
             for _ in range(k):
                 if pc not in self.stateMap.keys():
                     self.stateMap[pc] = []
+                    self.constraintMap[pc] = []
                 self.stateMap[pc].append(state.copy())
                 bc = self.bytecode[pc]
                 print(pc)
@@ -162,8 +164,12 @@ class Concolic:
                             if r.concrete:
                                 pc = bc.target
                                 path += [r.symbolic]
+                                self.constraintMap[pc - 1].append(r.symbolic)
                             else:
                                 path += [z3.simplify(z3.Not(r.symbolic))]
+                                self.constraintMap[pc - 1].append(
+                                    z3.simplify(z3.Not(r.symbolic))
+                                )
 
                     case "new":
                         if bc.dictionary["class"] == "java/lang/AssertionError":
