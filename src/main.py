@@ -36,14 +36,15 @@ class Concolic:
             for _ in range(k):
                 if pc not in self.stateMap.keys():
                     self.stateMap[pc] = []
-                    self.constraintMap[pc] = []
+
                 self.stateMap[pc].append(state.copy())
                 bc = self.bytecode[pc]
+                print("---------")
                 print(pc)
                 print(state)
                 print(bc)
                 print(path)
-                print("---------")
+
                 pc += 1
 
                 match bc.opr:
@@ -139,6 +140,17 @@ class Concolic:
                             v1_delta = state_difference.pop()
                             v2 = state.pop()
                             v1 = state.pop()
+                            for c_pc, constraint in self.constraintMap.items():
+                                if c_pc >= pc and c_pc < bc.target:
+                                    loop_solver = z3.Solver()
+                                    iterations = z3.Int("x")
+                                    loop_solver.add(
+                                        z3.And(
+                                            iterations >= 0,
+                                            constraint,
+                                        )
+                                    )
+
                             loop_solver = z3.Solver()
                             iterations = z3.Int("x")
                             loop_solver.add(
@@ -162,13 +174,13 @@ class Concolic:
                             r = ConcolicValue.compare(v1, bc.condition, v2)
 
                             if r.concrete:
+                                self.constraintMap[pc - 1] = r.symbolic
                                 pc = bc.target
                                 path += [r.symbolic]
-                                self.constraintMap[pc - 1].append(r.symbolic)
                             else:
                                 path += [z3.simplify(z3.Not(r.symbolic))]
-                                self.constraintMap[pc - 1].append(
-                                    z3.simplify(z3.Not(r.symbolic))
+                                self.constraintMap[pc - 1] = z3.simplify(
+                                    z3.Not(r.symbolic)
                                 )
 
                     case "new":
