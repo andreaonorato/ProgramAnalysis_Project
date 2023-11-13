@@ -184,8 +184,11 @@ class Concolic:
             self.solver.add(z3.Not(path_constraint))
 
 
-c = Concolic(find_method(("example_loop", "ShowBalance")))
-c.run(("__ne__", z3.IntVal(0)))
+# c = Concolic(find_method(("example_loop", "ShowBalance")))
+# c.run(("__ne__", z3.IntVal(0)))
 
 # c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
 # c.run(("__ge__", z3.IntVal(0)))
+
+c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
+c.run(("__ne__", z3.IntVal(0)))
