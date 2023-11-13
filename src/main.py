@@ -9,6 +9,7 @@ class Concolic:
         self.solver = z3.Solver()
         self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
         self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
+        self.stateMap = {}
 
     def run(self, output_range, k=1000):
         # print(bytecode)
@@ -32,13 +33,16 @@ class Concolic:
             path = []
 
             for _ in range(k):
+                if pc not in self.stateMap.keys():
+                    self.stateMap[pc] = []
+                self.stateMap[pc].append(state.copy())
                 bc = self.bytecode[pc]
                 print(pc)
-                pc += 1
                 print(state)
                 print(bc)
                 print(path)
                 print("---------")
+                pc += 1
 
                 match bc.opr:
                     case "get":
@@ -126,15 +130,40 @@ class Concolic:
                         break
 
                     case "if":
-                        v2 = state.pop()
-                        v1 = state.pop()
-                        z = ConcolicValue.from_const(0)
-                        r = ConcolicValue.compare(v1, bc.condition, v2)
-                        if r.concrete:
+                        if len(self.stateMap[pc - 1]) > 1:
+                            state_difference = state.diff(self.stateMap[pc - 1][0])
+                            self.stateMap[pc - 1] = []
+                            v2_delta = state_difference.pop()
+                            v1_delta = state_difference.pop()
+                            v2 = state.pop()
+                            v1 = state.pop()
+                            loop_solver = z3.Solver()
+                            iterations = z3.Int("x")
+                            loop_solver.add(
+                                z3.And(
+                                    iterations >= 0,
+                                    v1.symbolic + v1_delta.symbolic * iterations
+                                    >= v2.symbolic + v2_delta.symbolic * iterations,
+                                )
+                            )
+                            loop_solver.check()
+                            m = loop_solver.model()
+                            state.skipLoop(
+                                state_difference,
+                                ConcolicValue.from_const(m[iterations].as_long()),
+                            )
                             pc = bc.target
-                            path += [r.symbolic]
                         else:
-                            path += [z3.simplify(z3.Not(r.symbolic))]
+                            v2 = state.pop()
+                            v1 = state.pop()
+                            z = ConcolicValue.from_const(0)
+                            r = ConcolicValue.compare(v1, bc.condition, v2)
+
+                            if r.concrete:
+                                pc = bc.target
+                                path += [r.symbolic]
+                            else:
+                                path += [z3.simplify(z3.Not(r.symbolic))]
 
                     case "new":
                         if bc.dictionary["class"] == "java/lang/AssertionError":
