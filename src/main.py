@@ -23,7 +23,7 @@ class Concolic:
 
             state = State(
                 {
-                    k: ConcolicValue(i, p, p)
+                    k: ConcolicValue(i, p)
                     for k, (i, p) in enumerate(zip(input, self.params))
                 },
                 [],
@@ -47,13 +47,13 @@ class Concolic:
                 match bc.opr:
                     case "get":
                         if bc.field["name"] == "$assertionsDisabled":
-                            state.push(ConcolicValue.from_const(False, pc - 1))
+                            state.push(ConcolicValue.from_const(False))
                         else:
                             raise Exception(f"Unsupported bytecode: {bc}")
 
                     case "ifz":
                         v = state.pop()
-                        z = ConcolicValue.from_const(0, pc - 1)
+                        z = ConcolicValue.from_const(0)
                         r = ConcolicValue.compare(v, bc.condition, z)
                         if r.concrete:
                             pc = bc.target
@@ -68,7 +68,7 @@ class Concolic:
                         state.store(bc.index)
 
                     case "push":
-                        state.push(ConcolicValue.from_const(bc.value["value"], pc - 1))
+                        state.push(ConcolicValue.from_const(bc.value["value"]))
 
                     case "binary":
                         v2 = state.pop()
@@ -89,9 +89,7 @@ class Concolic:
                     case "incr":
                         state.load(bc.index)
                         v = state.pop()
-                        state.push(
-                            v.binary("add", ConcolicValue.from_const(bc.amount, pc - 1))
-                        )
+                        state.push(v.binary("add", ConcolicValue.from_const(bc.amount)))
                         state.store(bc.index)
 
                     case "goto":
@@ -152,13 +150,13 @@ class Concolic:
                             m = loop_solver.model()
                             state.skipLoop(
                                 state_difference,
-                                ConcolicValue.from_const(m[iterations].as_long(), pc),
+                                ConcolicValue.from_const(m[iterations].as_long()),
                             )
                             pc = bc.target
                         else:
                             v2 = state.pop()
                             v1 = state.pop()
-                            z = ConcolicValue.from_const(0, pc - 1)
+                            z = ConcolicValue.from_const(0)
                             r = ConcolicValue.compare(v1, bc.condition, v2)
 
                             if r.concrete:

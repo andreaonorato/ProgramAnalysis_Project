@@ -7,17 +7,16 @@ from dataclasses import dataclass
 class ConcolicValue:
     concrete: int | bool
     symbolic: z3.ExprRef
-    name: z3.ExprRef
 
     def __repr__(self):
-        return f"{self.concrete} ({self.symbolic}) name: {self.name}"
+        return f"{self.concrete} ({self.symbolic})"
 
     @classmethod
-    def from_const(cls, c, pc):
+    def from_const(cls, c):
         if isinstance(c, bool):
-            return ConcolicValue(c, z3.BoolVal(c), z3.Bool(f"b{pc}"))
+            return ConcolicValue(c, z3.BoolVal(c))
         if isinstance(c, int):
-            return ConcolicValue(c, z3.IntVal(c), z3.Int(f"i{pc}"))
+            return ConcolicValue(c, z3.IntVal(c))
         raise Exception(f"Unknown const: {c}")
 
     def binary(self, operant, other):
@@ -38,7 +37,6 @@ class ConcolicValue:
         return ConcolicValue(
             getattr(self.concrete, opr)(other.concrete),
             z3.simplify(getattr(self.symbolic, opr)(other.symbolic)),
-            z3.simplify(getattr(self.name, opr)(other.name)),
         )
 
     def compare(self, copr, other):
@@ -51,7 +49,6 @@ class ConcolicValue:
         return ConcolicValue(
             getattr(self.concrete, opr)(other.concrete),
             z3.simplify(getattr(self.symbolic, opr)(other.symbolic)),
-            z3.simplify(getattr(self.name, opr)(other.name)),
         )
 
 
