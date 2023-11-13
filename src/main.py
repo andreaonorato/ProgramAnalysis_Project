@@ -9,6 +9,7 @@ class Concolic:
         self.solver = z3.Solver()
         self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
         self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
+        self.stateMap = {}
 
     def run(self, output_range, k=1000):
         # print(bytecode)
@@ -22,7 +23,7 @@ class Concolic:
 
             state = State(
                 {
-                    k: ConcolicValue(i, p)
+                    k: ConcolicValue(i, p, p)
                     for k, (i, p) in enumerate(zip(input, self.params))
                 },
                 [],
@@ -32,24 +33,27 @@ class Concolic:
             path = []
 
             for _ in range(k):
+                if pc not in self.stateMap.keys():
+                    self.stateMap[pc] = []
+                self.stateMap[pc].append(state.copy())
                 bc = self.bytecode[pc]
                 print(pc)
-                pc += 1
                 print(state)
                 print(bc)
                 print(path)
                 print("---------")
+                pc += 1
 
                 match bc.opr:
                     case "get":
                         if bc.field["name"] == "$assertionsDisabled":
-                            state.push(ConcolicValue.from_const(False))
+                            state.push(ConcolicValue.from_const(False, pc - 1))
                         else:
                             raise Exception(f"Unsupported bytecode: {bc}")
 
                     case "ifz":
                         v = state.pop()
-                        z = ConcolicValue.from_const(0)
+                        z = ConcolicValue.from_const(0, pc - 1)
                         r = ConcolicValue.compare(v, bc.condition, z)
                         if r.concrete:
                             pc = bc.target
@@ -64,7 +68,7 @@ class Concolic:
                         state.store(bc.index)
 
                     case "push":
-                        state.push(ConcolicValue.from_const(bc.value["value"]))
+                        state.push(ConcolicValue.from_const(bc.value["value"], pc - 1))
 
                     case "binary":
                         v2 = state.pop()
@@ -85,7 +89,9 @@ class Concolic:
                     case "incr":
                         state.load(bc.index)
                         v = state.pop()
-                        state.push(v.binary("add", ConcolicValue.from_const(bc.amount)))
+                        state.push(
+                            v.binary("add", ConcolicValue.from_const(bc.amount, pc - 1))
+                        )
                         state.store(bc.index)
 
                     case "goto":
@@ -126,15 +132,40 @@ class Concolic:
                         break
 
                     case "if":
-                        v2 = state.pop()
-                        v1 = state.pop()
-                        z = ConcolicValue.from_const(0)
-                        r = ConcolicValue.compare(v1, bc.condition, v2)
-                        if r.concrete:
+                        if len(self.stateMap[pc - 1]) > 1:
+                            state_difference = state.diff(self.stateMap[pc - 1][0])
+                            self.stateMap[pc - 1] = []
+                            v2_delta = state_difference.pop()
+                            v1_delta = state_difference.pop()
+                            v2 = state.pop()
+                            v1 = state.pop()
+                            loop_solver = z3.Solver()
+                            iterations = z3.Int("x")
+                            loop_solver.add(
+                                z3.And(
+                                    iterations >= 0,
+                                    v1.symbolic + v1_delta.symbolic * iterations
+                                    >= v2.symbolic + v2_delta.symbolic * iterations,
+                                )
+                            )
+                            loop_solver.check()
+                            m = loop_solver.model()
+                            state.skipLoop(
+                                state_difference,
+                                ConcolicValue.from_const(m[iterations].as_long(), pc),
+                            )
                             pc = bc.target
-                            path += [r.symbolic]
                         else:
-                            path += [z3.simplify(z3.Not(r.symbolic))]
+                            v2 = state.pop()
+                            v1 = state.pop()
+                            z = ConcolicValue.from_const(0, pc - 1)
+                            r = ConcolicValue.compare(v1, bc.condition, v2)
+
+                            if r.concrete:
+                                pc = bc.target
+                                path += [r.symbolic]
+                            else:
+                                path += [z3.simplify(z3.Not(r.symbolic))]
 
                     case "new":
                         if bc.dictionary["class"] == "java/lang/AssertionError":
