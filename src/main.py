@@ -180,16 +180,15 @@ class Concolic:
                                     self.stateMap.pop(k)
                                 if k in self.skipLoop.keys():
                                     self.skipLoop.pop(k)
-
+                            print("skipping")
                             pc = pc - 1
                         else:
-                            if len(self.stateMap[pc - 1]) > 1:
+                            if len(self.stateMap[pc - 1]) > 10:
                                 self.skipLoop[pc - 1] = self.iterationsUntilNot(
-                                    state, pc - 1, bc
+                                    state.copy(), pc - 1, bc
                                 )
                             v2 = state.pop()
                             v1 = state.pop()
-                            z = ConcolicValue.from_const(0, pc - 1)
                             r = ConcolicValue.compare(v1, bc.condition, v2)
 
                             if r.concrete:
