@@ -9,41 +9,105 @@ class Concolic:
         self.solver = z3.Solver()
         self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
         self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
-        self.stateMap = {}
-        self.skipLoop = {}
+
+    def skip_iterations(self, state, pc, bc, path):
+        skipIterations = self.getLowestSkipLoop()
+        if skipIterations == -1:
+            raise Exception(f"Loop will not finish")
+        state.skipLoop(
+            state.diff(self.stateMap[pc - 1][-2]),
+            ConcolicValue.from_const(skipIterations - 1, pc - 1),
+        )
+
+        for k in range(pc - 1, bc.target):
+            if k in self.skippedPathExpr:
+                if self.skipLoop[k] > skipIterations or self.skipLoop[k] == -1:
+                    # works but is shit
+                    for i in range(skipIterations + 1):
+                        path += [
+                            z3.substitute(
+                                z3.Not(self.skippedPathExpr[k]),
+                                (z3.Int(f"x{k}"), z3.IntVal(i)),
+                            ),
+                        ]
+                self.skippedPathExpr.pop(k)
+            if k in self.stateMap.keys():
+                self.stateMap.pop(k)
+            if k in self.skipLoop.keys():
+                self.skipLoop.pop(k)
+
+        return state, path
 
     def getLowestSkipLoop(self):
         skip = -1
         for k, v in self.skipLoop.items():
             if skip == -1:
                 skip = v
-            elif skip > v:
+            elif skip > v and v > 0:
                 skip = v
         return skip
 
     # make this function consider path until there in loop
-    def iterationsUntilNot(self, state, pc, bc):
-        state_difference = state.diff(self.stateMap[pc][0])
+    def iterationsUntilNot(self, state, pc, bc, ifz=False):
+        negativeTest = False
+        constant = True
+        if all(self.ifResult[pc]):
+            negativeTest = True
+        elif all(not r for r in self.ifResult[pc]):
+            negativeTest = False
+        else:
+            constant = False
+            self.stateMap = {}
+            self.ifResult = {pc: []}
+            self.skipLoop = {}
+            self.skippedPathExpr = {}
+        if constant:
+            DICT = {"ne": "__ne__", "gt": "__gt__", "ge": "__ge__", "le": "__le__"}
+            if bc.condition in DICT:
+                opr = DICT[bc.condition]
 
-        v2_delta = state_difference.stack[-1]
-        v1_delta = state_difference.stack[-2]
-        v2 = state.stack[-1]
-        v1 = state.stack[-2]
-        loop_solver = z3.Solver()
-        iterations = z3.Int("x")
-        loop_solver.add(
-            z3.And(
-                iterations >= 0,
-                v1.symbolic + v1_delta.symbolic * iterations
-                >= v2.symbolic + v2_delta.symbolic * iterations,
+            state_difference = state.diff(self.stateMap[pc][-2])
+
+            if not ifz:
+                v2_delta = state_difference.pop()
+                v2 = state.pop()
+
+            v1_delta = state_difference.pop()
+            v1 = state.pop()
+            loop_solver = z3.Solver()
+            iterations = z3.Int(f"x{pc}")
+
+            if ifz:
+                expr = getattr(v1.concrete + v1_delta.concrete * iterations, opr)(0)
+                path_expr = getattr(v1.symbolic + v1_delta.symbolic * iterations, opr)(
+                    0
+                )
+
+            else:
+                expr = getattr(v1.concrete + v1_delta.concrete * iterations, opr)(
+                    v2.concrete + v2_delta.concrete * iterations
+                )
+                path_expr = getattr(v1.symbolic + v1_delta.symbolic * iterations, opr)(
+                    v2.symbolic + v2_delta.symbolic * iterations
+                )
+
+            if negativeTest:
+                expr = z3.Not(expr)
+                path_expr = z3.Not(path_expr)
+            loop_solver.add(
+                z3.And(
+                    iterations > 0,
+                    expr,
+                )
             )
-        )
-        if loop_solver.check() == z3.sat:
-            m = loop_solver.model()
-            return m[iterations].as_long()
-        return -1
+            self.skippedPathExpr[pc] = path_expr
+            if loop_solver.check() == z3.sat:
+                m = loop_solver.model()
+                self.skipLoop[pc] = m[iterations].as_long()
+            else:
+                self.skipLoop[pc] = -1
 
-    def run(self, output_range, k=1000):
+    def run(self, output_range, k=100):
         # print(bytecode)
 
         while self.solver.check() == z3.sat:
@@ -63,10 +127,14 @@ class Concolic:
 
             pc = 0
             path = []
-
+            self.stateMap = {}
+            self.ifResult = {}
+            self.skipLoop = {}
+            self.skippedPathExpr = {}
             for _ in range(k):
                 if pc not in self.stateMap.keys():
                     self.stateMap[pc] = []
+                    self.ifResult[pc] = []
 
                 self.stateMap[pc].append(state.copy())
                 bc = self.bytecode[pc]
@@ -86,15 +154,23 @@ class Concolic:
                             raise Exception(f"Unsupported bytecode: {bc}")
 
                     case "ifz":
-                        v = state.pop()
-                        z = ConcolicValue.from_const(0, pc - 1)
-                        r = ConcolicValue.compare(v, bc.condition, z)
-                        if r.concrete:
-                            pc = bc.target
-                            path += [r.symbolic]
+                        if pc - 1 in self.skipLoop.keys():
+                            state, path = self.skip_iterations(state, pc, bc, path)
+                            pc = pc - 1
                         else:
-                            print("false")
-                            path += [z3.simplify(z3.Not(r.symbolic))]
+                            if len(self.stateMap[pc - 1]) > 1:
+                                self.iterationsUntilNot(state.copy(), pc - 1, bc, True)
+                            v = state.pop()
+                            z = ConcolicValue.from_const(0, pc - 1)
+                            r = ConcolicValue.compare(v, bc.condition, z)
+                            if r.concrete:
+                                self.ifResult[pc - 1].append(True)
+                                pc = bc.target
+                                path += [r.symbolic]
+
+                            else:
+                                path += [z3.simplify(z3.Not(r.symbolic))]
+                                self.ifResult[pc - 1].append(False)
                     case "load":
                         state.load(bc.index)
 
@@ -138,15 +214,13 @@ class Concolic:
                         return_concolic = state.pop()
                         check_return = z3.Solver()
                         check_return.add(
-                            z3.simplify(
-                                z3.And(
-                                    *path,
-                                    z3.Not(
-                                        getattr(
-                                            return_concolic.symbolic, output_range[0]
-                                        )(output_range[1])
-                                    ),
-                                )
+                            z3.And(
+                                *path,
+                                z3.Not(
+                                    getattr(return_concolic.symbolic, output_range[0])(
+                                        output_range[1]
+                                    )
+                                ),
                             )
                         )
                         if check_return.check() == z3.sat:
@@ -166,36 +240,24 @@ class Concolic:
                         break
 
                     case "if":
-                        # if pc - 1 in self.skipLoop.keys():
-                        #     skipIterations = self.getLowestSkipLoop()
-                        #     if skipIterations == -1:
-                        #         raise Exception(f"Loop will not finish")
-                        #     state.skipLoop(
-                        #         state.diff(self.stateMap[pc - 1][0]),
-                        #         ConcolicValue.from_const(skipIterations, pc - 1),
-                        #     )
-
-                        #     for k in range(pc - 1, bc.target):
-                        #         if k in self.stateMap.keys():
-                        #             self.stateMap.pop(k)
-                        #         if k in self.skipLoop.keys():
-                        #             self.skipLoop.pop(k)
-                        #     print("skipping")
-                        #     pc = pc - 1
-                        # else:
-                        #     if len(self.stateMap[pc - 1]) > 10:
-                        #         self.skipLoop[pc - 1] = self.iterationsUntilNot(
-                        #             state.copy(), pc - 1, bc
-                        #         )
-                        v2 = state.pop()
-                        v1 = state.pop()
-                        r = ConcolicValue.compare(v1, bc.condition, v2)
-
-                        if r.concrete:
-                            pc = bc.target
-                            path += [r.symbolic]
+                        if pc - 1 in self.skipLoop.keys():
+                            state, path = self.skip_iterations(state, pc, bc, path)
+                            pc = pc - 1
                         else:
-                            path += [z3.simplify(z3.Not(r.symbolic))]
+                            if len(self.stateMap[pc - 1]) > 1:
+                                self.iterationsUntilNot(state.copy(), pc - 1, bc)
+                            v2 = state.pop()
+                            v1 = state.pop()
+                            r = ConcolicValue.compare(v1, bc.condition, v2)
+
+                            if r.concrete:
+                                self.ifResult[pc - 1].append(True)
+                                pc = bc.target
+                                path += [r.symbolic]
+
+                            else:
+                                path += [z3.simplify(z3.Not(r.symbolic))]
+                                self.ifResult[pc - 1].append(False)
 
                     case "new":
                         if bc.dictionary["class"] == "java/lang/AssertionError":
@@ -219,8 +281,8 @@ class Concolic:
 # c = Concolic(find_method(("example_loop", "ShowBalance")))
 # c.run(("__ne__", z3.IntVal(0)))
 
-# c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
-# c.run(("__ge__", z3.IntVal(0)))
+c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
+c.run(("__ge__", z3.IntVal(0)))
 
-c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
-c.run(("__ne__", z3.IntVal(0)))
+# c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
+# c.run(("__ne__", z3.IntVal(0)))
