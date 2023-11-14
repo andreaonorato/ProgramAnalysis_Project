@@ -10,7 +10,38 @@ class Concolic:
         self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
         self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
         self.stateMap = {}
-        self.constraintMap = {}
+        self.skipLoop = {}
+
+    def getLowestSkipLoop(self):
+        skip = -1
+        for k, v in self.skipLoop.items():
+            if skip == -1:
+                skip = v
+            elif skip > v:
+                skip = v
+        return skip
+
+    # make this function consider path until there in loop
+    def iterationsUntilNot(self, state, pc, bc):
+        state_difference = state.diff(self.stateMap[pc][0])
+
+        v2_delta = state_difference.stack[-1]
+        v1_delta = state_difference.stack[-2]
+        v2 = state.stack[-1]
+        v1 = state.stack[-2]
+        loop_solver = z3.Solver()
+        iterations = z3.Int("x")
+        loop_solver.add(
+            z3.And(
+                iterations >= 0,
+                v1.symbolic + v1_delta.symbolic * iterations
+                >= v2.symbolic + v2_delta.symbolic * iterations,
+            )
+        )
+        if loop_solver.check() == z3.sat:
+            m = loop_solver.model()
+            return m[iterations].as_long()
+        return -1
 
     def run(self, output_range, k=1000):
         # print(bytecode)
@@ -135,112 +166,37 @@ class Concolic:
                         break
 
                     case "if":
-                        if len(self.stateMap[pc - 1]) > 2:
-                            skip_iterations = 100000000
-                            for c_pc, (copr, positive) in self.constraintMap.items():
-                                if c_pc >= pc and c_pc < bc.target:
-                                    DICT = {
-                                        "ne": "__ne__",
-                                        "gt": "__gt__",
-                                        "ge": "__ge__",
-                                        "le": "__le__",
-                                    }
-                                    if copr in DICT:
-                                        opr = DICT[copr]
-                                    print(opr)
-                                    state_difference = State.findDelta(
-                                        [
-                                            self.stateMap[c_pc][0],
-                                            self.stateMap[c_pc][1],
-                                        ],
-                                        "",
-                                    )
-                                    v2_delta = state_difference.stack[-1]
-                                    v1_delta = state_difference.stack[-2]
-                                    v2 = self.stateMap[c_pc][1].stack[-1]
-                                    v1 = self.stateMap[c_pc][1].stack[-2]
-                                    loop_solver = z3.Solver()
-                                    iterations = z3.Int("x")
-                                    if not positive:
-                                        loop_solver.add(
-                                            z3.And(
-                                                iterations >= 0,
-                                                (
-                                                    getattr(
-                                                        v1.concrete
-                                                        + v1_delta.concrete
-                                                        * iterations,
-                                                        opr,
-                                                    )(
-                                                        v2.concrete
-                                                        + v2_delta.concrete * iterations
-                                                    )
-                                                ),
-                                            )
-                                        )
-                                    else:
-                                        loop_solver.add(
-                                            z3.And(
-                                                iterations >= 0,
-                                                z3.Not(
-                                                    (
-                                                        getattr(
-                                                            v1.concrete
-                                                            + v1_delta.concrete
-                                                            * iterations,
-                                                            opr,
-                                                        )(
-                                                            v2.concrete
-                                                            + v2_delta.concrete
-                                                            * iterations
-                                                        )
-                                                    ),
-                                                ),
-                                            )
-                                        )
-                                    loop_solver.check()
-                                    m = loop_solver.model()
-                                    if m[iterations].as_long() < skip_iterations:
-                                        skip_iterations = m[iterations].as_long()
-                                    self.stateMap[c_pc] = []
-                            state_difference = state.diff(self.stateMap[pc - 1][0])
-                            self.stateMap[pc - 1] = []
-                            v2_delta = state_difference.stack[-1]
-                            v1_delta = state_difference.stack[-2]
-                            v2 = state.stack[-1]
-                            v1 = state.stack[-2]
-                            loop_solver = z3.Solver()
-                            iterations = z3.Int("x")
-                            loop_solver.add(
-                                z3.And(
-                                    iterations >= 0,
-                                    v1.symbolic + v1_delta.symbolic * iterations
-                                    >= v2.symbolic + v2_delta.symbolic * iterations,
-                                )
-                            )
-                            loop_solver.check()
-                            m = loop_solver.model()
-                            if m[iterations].as_long() < skip_iterations:
-                                skip_iterations = m[iterations].as_long()
+                        if pc - 1 in self.skipLoop.keys():
+                            skipIterations = self.getLowestSkipLoop()
+                            if skipIterations == -1:
+                                raise Exception(f"Loop will not finish")
                             state.skipLoop(
-                                state_difference,
-                                ConcolicValue.from_const(skip_iterations, pc - 1),
+                                state.diff(self.stateMap[pc - 1][0]),
+                                ConcolicValue.from_const(skipIterations, pc - 1),
                             )
+
+                            for k in range(pc - 1, bc.target):
+                                if k in self.stateMap.keys():
+                                    self.stateMap.pop(k)
+                                if k in self.skipLoop.keys():
+                                    self.skipLoop.pop(k)
 
                             pc = pc - 1
                         else:
+                            if len(self.stateMap[pc - 1]) > 1:
+                                self.skipLoop[pc - 1] = self.iterationsUntilNot(
+                                    state, pc - 1, bc
+                                )
                             v2 = state.pop()
                             v1 = state.pop()
                             z = ConcolicValue.from_const(0, pc - 1)
                             r = ConcolicValue.compare(v1, bc.condition, v2)
 
                             if r.concrete:
-                                self.constraintMap[pc - 1] = (bc.condition, True)
                                 pc = bc.target
                                 path += [r.symbolic]
                             else:
                                 path += [z3.simplify(z3.Not(r.symbolic))]
-                                self.constraintMap[pc - 1] = (bc.condition, False)
 
                     case "new":
                         if bc.dictionary["class"] == "java/lang/AssertionError":
