@@ -7,16 +7,17 @@ from dataclasses import dataclass
 class ConcolicValue:
     concrete: int | bool
     symbolic: z3.ExprRef
+    name: z3.ExprRef
 
     def __repr__(self):
-        return f"{self.concrete} ({self.symbolic})"
+        return f"{self.concrete} ({self.symbolic})  name: {self.name}"
 
     @classmethod
-    def from_const(cls, c):
+    def from_const(cls, c, pc):
         if isinstance(c, bool):
-            return ConcolicValue(c, z3.BoolVal(c))
+            return ConcolicValue(c, z3.BoolVal(c), z3.Bool(f"b{pc}"))
         if isinstance(c, int):
-            return ConcolicValue(c, z3.IntVal(c))
+            return ConcolicValue(c, z3.IntVal(c), z3.Int(f"i{pc}"))
         raise Exception(f"Unknown const: {c}")
 
     def binary(self, operant, other):
@@ -30,6 +31,7 @@ class ConcolicValue:
                 return ConcolicValue(
                     self.concrete // other.concrete,
                     z3.simplify(self.symbolic / other.symbolic),
+                    z3.simplify(self.name / other.name),
                 )
 
             raise Exception(f"Unknown binary operation: {operant}")
@@ -37,6 +39,7 @@ class ConcolicValue:
         return ConcolicValue(
             getattr(self.concrete, opr)(other.concrete),
             z3.simplify(getattr(self.symbolic, opr)(other.symbolic)),
+            z3.simplify(getattr(self.name, opr)(other.name)),
         )
 
     def compare(self, copr, other):
@@ -49,6 +52,7 @@ class ConcolicValue:
         return ConcolicValue(
             getattr(self.concrete, opr)(other.concrete),
             z3.simplify(getattr(self.symbolic, opr)(other.symbolic)),
+            z3.simplify(getattr(self.name, opr)(other.name)),
         )
 
 
@@ -90,6 +94,9 @@ class State:
             self.stack[i] = s.binary(
                 "add", diffState.stack[i].binary("mul", iterations)
             )
+
+    def findDelta(states, variable):
+        return states[-1].diff(states[-2])
 
 
 @dataclass
