@@ -166,36 +166,36 @@ class Concolic:
                         break
 
                     case "if":
-                        if pc - 1 in self.skipLoop.keys():
-                            skipIterations = self.getLowestSkipLoop()
-                            if skipIterations == -1:
-                                raise Exception(f"Loop will not finish")
-                            state.skipLoop(
-                                state.diff(self.stateMap[pc - 1][0]),
-                                ConcolicValue.from_const(skipIterations, pc - 1),
-                            )
+                        # if pc - 1 in self.skipLoop.keys():
+                        #     skipIterations = self.getLowestSkipLoop()
+                        #     if skipIterations == -1:
+                        #         raise Exception(f"Loop will not finish")
+                        #     state.skipLoop(
+                        #         state.diff(self.stateMap[pc - 1][0]),
+                        #         ConcolicValue.from_const(skipIterations, pc - 1),
+                        #     )
 
-                            for k in range(pc - 1, bc.target):
-                                if k in self.stateMap.keys():
-                                    self.stateMap.pop(k)
-                                if k in self.skipLoop.keys():
-                                    self.skipLoop.pop(k)
-                            print("skipping")
-                            pc = pc - 1
+                        #     for k in range(pc - 1, bc.target):
+                        #         if k in self.stateMap.keys():
+                        #             self.stateMap.pop(k)
+                        #         if k in self.skipLoop.keys():
+                        #             self.skipLoop.pop(k)
+                        #     print("skipping")
+                        #     pc = pc - 1
+                        # else:
+                        #     if len(self.stateMap[pc - 1]) > 10:
+                        #         self.skipLoop[pc - 1] = self.iterationsUntilNot(
+                        #             state.copy(), pc - 1, bc
+                        #         )
+                        v2 = state.pop()
+                        v1 = state.pop()
+                        r = ConcolicValue.compare(v1, bc.condition, v2)
+
+                        if r.concrete:
+                            pc = bc.target
+                            path += [r.symbolic]
                         else:
-                            if len(self.stateMap[pc - 1]) > 10:
-                                self.skipLoop[pc - 1] = self.iterationsUntilNot(
-                                    state.copy(), pc - 1, bc
-                                )
-                            v2 = state.pop()
-                            v1 = state.pop()
-                            r = ConcolicValue.compare(v1, bc.condition, v2)
-
-                            if r.concrete:
-                                pc = bc.target
-                                path += [r.symbolic]
-                            else:
-                                path += [z3.simplify(z3.Not(r.symbolic))]
+                            path += [z3.simplify(z3.Not(r.symbolic))]
 
                     case "new":
                         if bc.dictionary["class"] == "java/lang/AssertionError":
