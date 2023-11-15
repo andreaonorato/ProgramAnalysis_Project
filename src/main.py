@@ -5,22 +5,37 @@ from utils import Bytecode, ConcolicValue, State
 
 
 class Concolic:
-    def __init__(self, target) -> None:
-        self.solver = z3.Solver()
-        self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
-        self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
-        self.stateMap = {}
 
+    #this is the object, returns None
+    def __init__(self, target) -> None:
+        # one of the parameters is z3.solver
+        self.solver = z3.Solver()
+        # this is a list of the parameters (inputs) of the analyzed function
+        self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
+        # what are you doing to the bytecode?
+        self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
+        # map of the state one where we are
+        self.stateMap = {}
+    # output_range = ("__ne__", z3.IntVal(0))
     def run(self, output_range, k=1000):
         # print(bytecode)
-
+        # check the satisfability of a set of constrains using z3 solver
+        # whille "set of contraints" is satisfiable
         while self.solver.check() == z3.sat:
-            model = self.solver.model()
+            model = self.solver.model() # A model in Z3 is an assignment of values to variables that satisfies the given logical conditions.
             input = [
+                #list called input with all the values given to the variables to satisfy all the constrains
                 model.eval(p, model_completion=True).as_long() for p in self.params
             ]
-            print(input)
+            #concrete values part of the concolic analysis
+            #print("This is my input ",input, "\n\n\n\n\n\n")
 
+            # Each state has a dict and a list
+            
+            # The dict of the State object is with key-value pairs where the keys are indices and the values are instances of ConcolicValue initialized with values from input and self.params
+            # The empty list is the stack, which is empty at the beginning
+            # State(locals={0: 1 (p0), 1: 1 (p1), 2: 10 (p2), 3: 10 (p3)}, stack=[])
+            # State(locals={$k$: $input_mapped_to_variable$ ($params$), etc, stack=[])
             state = State(
                 {
                     k: ConcolicValue(i, p)
@@ -28,6 +43,7 @@ class Concolic:
                 },
                 [],
             )
+            #print("This is the state: ",state)
 
             pc = 0
             path = []
@@ -189,6 +205,9 @@ class Concolic:
 
 # c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
 # c.run(("__ge__", z3.IntVal(0)))
+# FIRST LINE OF THE MAIN
+#find_method("FileName","MethodName")
+c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
 
-c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
+# z3.IntVal(0) it's like a normal 0 used by z3
 c.run(("__ne__", z3.IntVal(0)))
