@@ -43,24 +43,24 @@ class Concolic:
                 },
                 [],
             )
-            #print("This is the state: ",state)
-
+            # print("This is the state: ",state)
+            # K is the depth
             pc = 0
             path = []
 
             for _ in range(k):
                 if pc not in self.stateMap.keys():
-                    self.stateMap[pc] = []
+                    self.stateMap[pc] = [] # create the space for the variables for that pc
                 self.stateMap[pc].append(state.copy())
-                bc = self.bytecode[pc]
+                bc = self.bytecode[pc] #take only the operation line like load, add, etc
                 print(pc)
-                print(state)
-                print(bc)
+                print(state, "\n")
+                print(bc, "\n" )
                 print(path)
-                print("---------")
                 pc += 1
-
+                
                 match bc.opr:
+                    
                     case "get":
                         if bc.field["name"] == "$assertionsDisabled":
                             state.push(ConcolicValue.from_const(False))
@@ -68,11 +68,11 @@ class Concolic:
                             raise Exception(f"Unsupported bytecode: {bc}")
 
                     case "ifz":
-                        v = state.pop()
-                        z = ConcolicValue.from_const(0)
-                        r = ConcolicValue.compare(v, bc.condition, z)
+                        v = state.pop()                 # take the state
+                        z = ConcolicValue.from_const(0) # z3.intvalue(0)
+                        r = ConcolicValue.compare(v, bc.condition, z) #bc.condition like gt ne...
                         if r.concrete:
-                            pc = bc.target
+                            pc = bc.target # target of where to go
                             path += [r.symbolic]
                         else:
                             print("false")
@@ -210,4 +210,5 @@ class Concolic:
 c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
 
 # z3.IntVal(0) it's like a normal 0 used by z3
+# we want an output greater than 0, so __ge__
 c.run(("__ne__", z3.IntVal(0)))
