@@ -40,8 +40,8 @@ class ConcolicValue:
         )
 
     def compare(self, copr, other):
-        # ne= not equal, gt = greater than, ge = greater then or equal, le = less then or equal to
-        # we are missing less then
+        # ne = not equal, gt = greater than, ge = greater than or equal, le = less than or equal
+        # we are missing less than (lss)
         DICT = {"ne": "__ne__", "gt": "__gt__", "ge": "__ge__", "le": "__le__"}
         if copr in DICT:
             opr = DICT[copr]

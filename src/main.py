@@ -1,5 +1,6 @@
 from filereader import find_method
 import z3
+import time
 from pathlib import Path
 from utils import Bytecode, ConcolicValue, State
 
@@ -140,7 +141,8 @@ class Concolic:
                             )
 
                             raise Exception(
-                                f"Found out of range output {invalid_output} for inputs: {list(zip(self.params,input))}"
+                                f"Found out of range output {invalid_output} for inputs: {list(zip(self.params,input))} in {time.time()-start_time} seconds"
+                                
                             )
                         result = f"returned {return_concolic}"
                         break
@@ -207,8 +209,12 @@ class Concolic:
 # c.run(("__ge__", z3.IntVal(0)))
 # FIRST LINE OF THE MAIN
 #find_method("FileName","MethodName")
-c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
+start_time = time.time()
+c = Concolic(find_method(("example_loop", "ShowBalance")))
+# c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
+#c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
 
 # z3.IntVal(0) it's like a normal 0 used by z3
 # we want an output greater than 0, so __ge__
-c.run(("__ne__", z3.IntVal(0)))
+c.run(("__ne__", z3.IntVal(0)))   # To test example_loop or example_NoOutOfRange
+# c.run(("__ge__", z3.IntVal(0)))   # To test example_analysis
