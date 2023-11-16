@@ -14,6 +14,8 @@ class Concolic:
         skipIterations = self.getLowestSkipLoop()
         if skipIterations == -1:
             raise Exception(f"Loop will not finish")
+        if skipIterations < 5:
+            skipIterations = 0
         state.skipLoop(
             state.diff(self.stateMap[pc - 1][-2]),
             ConcolicValue.from_const(skipIterations - 1, pc - 1),
@@ -21,9 +23,9 @@ class Concolic:
 
         for k in range(pc - 1, bc.target):
             if k in self.skippedPathExpr:
-                if self.skipLoop[k] > skipIterations or self.skipLoop[k] == -1:
+                if self.skipLoop[k] >= skipIterations or self.skipLoop[k] == -1:
                     # works but is shit
-                    for i in range(skipIterations + 1):
+                    for i in range(skipIterations):
                         path += [
                             z3.substitute(
                                 z3.Not(self.skippedPathExpr[k]),
@@ -276,13 +278,15 @@ class Concolic:
             print(input, "->", result, "|", path_constraint)
 
             self.solver.add(z3.Not(path_constraint))
+        if not self.solver.check() == z3.sat:
+            print("No out of range values")
 
 
 # c = Concolic(find_method(("example_loop", "ShowBalance")))
 # c.run(("__ne__", z3.IntVal(0)))
 
-c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
-c.run(("__ge__", z3.IntVal(0)))
+# c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
+# c.run(("__ge__", z3.IntVal(0)))
 
-# c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
-# c.run(("__ne__", z3.IntVal(0)))
+c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
+c.run(("__ne__", z3.IntVal(0)))
