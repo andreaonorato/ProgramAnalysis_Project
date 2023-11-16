@@ -3,6 +3,9 @@ import z3
 from pathlib import Path
 from utils import Bytecode, ConcolicValue, State
 
+LOOP_UNTIL_SKIP = 2
+MIN_SKIP_SIZE = 3
+
 
 class Concolic:
     def __init__(self, target) -> None:
@@ -14,7 +17,7 @@ class Concolic:
         skipIterations = self.getLowestSkipLoop()
         if skipIterations == -1:
             raise Exception(f"Loop will not finish")
-        if skipIterations < 5:
+        if skipIterations < MIN_SKIP_SIZE:
             skipIterations = 0
         state.skipLoop(
             state.diff(self.stateMap[pc - 1][-2]),
@@ -160,7 +163,7 @@ class Concolic:
                             state, path = self.skip_iterations(state, pc, bc, path)
                             pc = pc - 1
                         else:
-                            if len(self.stateMap[pc - 1]) > 1:
+                            if len(self.stateMap[pc - 1]) > LOOP_UNTIL_SKIP:
                                 self.iterationsUntilNot(state.copy(), pc - 1, bc, True)
                             v = state.pop()
                             z = ConcolicValue.from_const(0, pc - 1)
@@ -246,7 +249,7 @@ class Concolic:
                             state, path = self.skip_iterations(state, pc, bc, path)
                             pc = pc - 1
                         else:
-                            if len(self.stateMap[pc - 1]) > 1:
+                            if len(self.stateMap[pc - 1]) > LOOP_UNTIL_SKIP:
                                 self.iterationsUntilNot(state.copy(), pc - 1, bc)
                             v2 = state.pop()
                             v1 = state.pop()
