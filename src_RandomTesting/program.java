@@ -2,19 +2,15 @@ package ProgramAnalysis_Project.src_RandomTesting;
 
 public class program {
     public static void main(String[] args) {
-    	// This class calculates the remaining balance of a bank account of a person who is probably going to be bankrupt soon
-        // The accepted returned values are all numbers different from 0, because if the bank sees that there's exacly 0 money the account raise an error
-        // The balance can be negative, this means the person owes money to the bank
-        // You can owe maximum 100 DKK to the bank, if you owe more than 100 the program should return the quantity of money that you owe and stop the transactions
-        int[] myinput = new int[2];
-        myinput[0] = 10;
-        myinput[1] = 5;
-        System.out.print(ShowBalance(myinput));
-    	// This is just an example, i want as an output a number different than 0
-        // The program goes out of range (output=0) only if CostPerProduct*QuantityOfProducts=50
     	
     }
-    
+
+// This class calculates the remaining balance of the bank account of a person who is probably going to be bankrupt soon
+// The accepted returned values are all numbers different from 0, because if the bank sees that there's exactly 0 money the account raises an error
+// The balance can be negative, this means the person owes money to the bank
+// You can owe a maximum 100 DKK to the bank, if you owe more than 100 the program should return the quantity of money that you owe and stop the transactions
+// This is just an example, I want as output a number different than 0
+// The program goes out of range (output=0) only if CostPerProduct*QuantityOfProducts=50
     public static int ShowBalance(int[] arguments) {
     	int CostPerProduct = arguments[0];
         int QuantityOfProducts = arguments[1];
