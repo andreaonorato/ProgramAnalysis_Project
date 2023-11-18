@@ -112,3 +112,28 @@ class Bytecode:
             for k, v in self.dictionary.items()
             if k != "opr" and k != "offset"
         )
+
+
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+
+def linearRegression(x_values, y_values):
+    # Reshape the input variable to a 2D array
+    x_values = np.reshape(x_values, (-1, 1))
+
+    # Create a linear regression model and fit the data
+    model = LinearRegression()
+    model.fit(x_values, y_values)
+    return model
+
+
+def solveIterations(model, desired):
+    return model.predict(desired)
+
+
+def predict_iterations(stateMap, pc, desired):
+    x_values = [state.stack[0] for state in stateMap[pc]]
+    y_values = list(range(0, len(stateMap[pc])))
+    m = linearRegression(x_values, y_values)
+    return solveIterations(m, desired)

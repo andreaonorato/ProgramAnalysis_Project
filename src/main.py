@@ -71,7 +71,9 @@ class Concolic:
             if bc.condition in DICT:
                 opr = DICT[bc.condition]
 
+
             state_difference = state.diff(self.stateMap[pc][-2])
+            i = predict_iterations(self.stateMap,pc)
 
             if not ifz:
                 v2_delta = state_difference.pop()
@@ -286,8 +288,8 @@ class Concolic:
 # c = Concolic(find_method(("example_loop", "ShowBalance")))
 # c.run(("__ne__", z3.IntVal(0)))
 
-c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
-c.run([("__ge__", z3.IntVal(0)), ("__lt__", z3.IntVal(100))])
+# c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
+# c.run([("__ge__", z3.IntVal(0)), ("__lt__", z3.IntVal(100))])
 
-# c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
-# c.run(("__ne__", z3.IntVal(0)))
+c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
+c.run(("__ne__", z3.IntVal(0)))
