@@ -218,16 +218,14 @@ class Concolic:
 
                         return_concolic = state.pop()
                         check_return = z3.Solver()
-                        check_return.add(
-                            z3.And(
-                                *path,
+                        range_expr = []
+                        for operator, limit in output_range:
+                            range_expr.append(
                                 z3.Not(
-                                    getattr(return_concolic.symbolic, output_range[0])(
-                                        output_range[1]
-                                    )
+                                    getattr(return_concolic.symbolic, operator)(limit)
                                 ),
                             )
-                        )
+                        check_return.add(z3.And(*path, z3.Or(*range_expr)))
                         if check_return.check() == z3.sat:
                             invalid_return = check_return.model()
                             input = [
@@ -288,8 +286,8 @@ class Concolic:
 # c = Concolic(find_method(("example_loop", "ShowBalance")))
 # c.run(("__ne__", z3.IntVal(0)))
 
-# c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
-# c.run(("__ge__", z3.IntVal(0)))
+c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
+c.run([("__ge__", z3.IntVal(0)), ("__lt__", z3.IntVal(100))])
 
-c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
-c.run(("__ne__", z3.IntVal(0)))
+# c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
+# c.run(("__ne__", z3.IntVal(0)))
