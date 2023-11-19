@@ -112,7 +112,7 @@ class Concolic:
             else:
                 self.skipLoop[pc] = -1
 
-    def run(self, output_range, k=100):
+    def run(self, output_range, skip_loops=True, k=100):
         # print(bytecode)
 
         while self.solver.check() == z3.sat:
@@ -132,16 +132,18 @@ class Concolic:
 
             pc = 0
             path = []
-            self.stateMap = {}
-            self.ifResult = {}
-            self.skipLoop = {}
-            self.skippedPathExpr = {}
+            if skip_loops:
+                self.stateMap = {}
+                self.ifResult = {}
+                self.skipLoop = {}
+                self.skippedPathExpr = {}
             for _ in range(k):
-                if pc not in self.stateMap.keys():
-                    self.stateMap[pc] = []
-                    self.ifResult[pc] = []
+                if skip_loops:
+                    if pc not in self.stateMap.keys():
+                        self.stateMap[pc] = []
+                        self.ifResult[pc] = []
+                    self.stateMap[pc].append(state.copy())
 
-                self.stateMap[pc].append(state.copy())
                 bc = self.bytecode[pc]
                 print("---------")
                 print(pc)
@@ -159,23 +161,28 @@ class Concolic:
                             raise Exception(f"Unsupported bytecode: {bc}")
 
                     case "ifz":
-                        if pc - 1 in self.skipLoop.keys():
+                        if skip_loops and pc - 1 in self.skipLoop.keys():
                             state, path = self.skip_iterations(state, pc, bc, path)
                             pc = pc - 1
                         else:
-                            if len(self.stateMap[pc - 1]) > LOOP_UNTIL_SKIP:
+                            if (
+                                skip_loops
+                                and len(self.stateMap[pc - 1]) > LOOP_UNTIL_SKIP
+                            ):
                                 self.iterationsUntilNot(state.copy(), pc - 1, bc, True)
                             v = state.pop()
                             z = ConcolicValue.from_const(0, pc - 1)
                             r = ConcolicValue.compare(v, bc.condition, z)
                             if r.concrete:
-                                self.ifResult[pc - 1].append(True)
+                                if skip_loops:
+                                    self.ifResult[pc - 1].append(True)
                                 pc = bc.target
                                 path += [r.symbolic]
 
                             else:
                                 path += [z3.simplify(z3.Not(r.symbolic))]
-                                self.ifResult[pc - 1].append(False)
+                                if skip_loops:
+                                    self.ifResult[pc - 1].append(False)
                     case "load":
                         state.load(bc.index)
 
@@ -243,24 +250,29 @@ class Concolic:
                         break
 
                     case "if":
-                        if pc - 1 in self.skipLoop.keys():
+                        if skip_loops and pc - 1 in self.skipLoop.keys():
                             state, path = self.skip_iterations(state, pc, bc, path)
                             pc = pc - 1
                         else:
-                            if len(self.stateMap[pc - 1]) > LOOP_UNTIL_SKIP:
+                            if (
+                                skip_loops
+                                and len(self.stateMap[pc - 1]) > LOOP_UNTIL_SKIP
+                            ):
                                 self.iterationsUntilNot(state.copy(), pc - 1, bc)
                             v2 = state.pop()
                             v1 = state.pop()
                             r = ConcolicValue.compare(v1, bc.condition, v2)
 
                             if r.concrete:
-                                self.ifResult[pc - 1].append(True)
+                                if skip_loops:
+                                    self.ifResult[pc - 1].append(True)
                                 pc = bc.target
                                 path += [r.symbolic]
 
                             else:
                                 path += [z3.simplify(z3.Not(r.symbolic))]
-                                self.ifResult[pc - 1].append(False)
+                                if skip_loops:
+                                    self.ifResult[pc - 1].append(False)
 
                     case "new":
                         if bc.dictionary["class"] == "java/lang/AssertionError":
@@ -283,11 +295,11 @@ class Concolic:
             print("No out of range values")
 
 
-# c = Concolic(find_method(("example_loop", "ShowBalance")))
-# c.run(("__ne__", z3.IntVal(0)))
+c = Concolic(find_method(("example_loop", "ShowBalance")))
+c.run([("__ne__", z3.IntVal(0))], skip_loops=False, k=100)
 
-c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
-c.run([("__ge__", z3.IntVal(0)), ("__lt__", z3.IntVal(100))])
+# c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
+# c.run([("__ge__", z3.IntVal(0)), ("__lt__", z3.IntVal(100))], False)
 
 # c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
 # c.run(("__ne__", z3.IntVal(0)))
