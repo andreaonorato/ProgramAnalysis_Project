@@ -1,6 +1,4 @@
 import z3
-import time
-from pathlib import Path
 from utils import Bytecode, ConcolicValue, State, find_method, translate_condition
 
 LOOP_UNTIL_SKIP = 2
@@ -61,11 +59,11 @@ class Concolic:
                     self.stateMap[pc].append(state.copy())
 
                 bc = self.bytecode[pc]
-                # print("---------")
-                # print(pc)
-                # print(state)
-                # print(bc)
-                # print(path)
+                print("---------")
+                print(pc)
+                print(state)
+                print(bc)
+                print(path)
 
                 pc += 1
 
@@ -155,13 +153,13 @@ class Concolic:
                                 invalid_return.eval(p, model_completion=True).as_long()
                                 for p in self.params
                             ]
-                            invalid_output = invalid_return.eval(
-                                return_concolic.symbolic
-                            )
-
-                            raise Exception(
-                                f"Found out of range output {invalid_output} for inputs: {list(zip(self.params,input))} in {time.time()-start_time} seconds"
-                            )
+                            # invalid_output = invalid_return.eval(
+                            #     return_concolic.symbolic
+                            # )
+                            return True, input
+                            # raise Exception(
+                            #     f"Found out of range output {invalid_output} for inputs: {list(zip(self.params,input))}"
+                            # )
                         result = f"returned {return_concolic}"
                         break
 
@@ -208,7 +206,8 @@ class Concolic:
 
             self.solver.add(z3.Not(path_constraint))
         if not self.solver.check() == z3.sat:
-            print(f"No out of range values in {time.time()-start_time} seconds")
+            print(f"No out of range values")
+            return False, []
 
     def skip_iterations(self, state, pc, bc, path):
         skipIterations = self.getLowestSkipLoop()
@@ -224,7 +223,6 @@ class Concolic:
         for k in range(pc - 1, bc.target):
             if k in self.skippedPathExpr:
                 if self.skipLoop[k] >= skipIterations or self.skipLoop[k] == -1:
-                    # works but is shit
                     for i in range(skipIterations):
                         path += [
                             z3.substitute(
@@ -306,17 +304,3 @@ class Concolic:
                 self.skipLoop[pc] = m[iterations].as_long()
             else:
                 self.skipLoop[pc] = -1
-
-
-# FIRST LINE OF THE MAIN
-# find_method("FileName","MethodName")
-start_time = time.time()
-c = Concolic(find_method("../data/example_loop.json", "ShowBalance"))
-c.run([("__ne__", z3.IntVal(0))], skip_loops=False, k=1000)
-
-# we want an output greater than 0, so __ge__
-# c = Concolic(find_method("../data/example_analysis.json", "calculateEfficiency"))
-# c.run([("__ge__", z3.IntVal(0)), ("__lt__", z3.IntVal(100))], False)
-
-# c = Concolic(find_method("../data/example_NoOutOfRange.json", "ShowBalance"))
-# c.run([("__ne__", z3.IntVal(0))])
