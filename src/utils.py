@@ -1,6 +1,24 @@
 import z3
 import json
 from dataclasses import dataclass
+from pathlib import Path
+import json
+
+
+def find_method(path, method):
+    with open(path) as p:
+        doc = json.load(p)
+        for m in doc["methods"]:
+            if m["name"] == method:
+                return m
+
+
+def translate_condition(copr):
+    DICT = {"ne": "__ne__", "gt": "__gt__", "ge": "__ge__", "le": "__le__"}
+    if copr in DICT:
+        return DICT[copr]
+    else:
+        raise Exception(f"Unknown compartition: {copr}")
 
 
 @dataclass
@@ -45,12 +63,7 @@ class ConcolicValue:
     def compare(self, copr, other):
         # ne = not equal, gt = greater than, ge = greater than or equal, le = less than or equal
         # we are missing less than (lss)
-        DICT = {"ne": "__ne__", "gt": "__gt__", "ge": "__ge__", "le": "__le__"}
-        if copr in DICT:
-            opr = DICT[copr]
-
-        else:
-            raise Exception(f"Unknown compartition: {copr}")
+        opr = translate_condition(copr)
         return ConcolicValue(
             getattr(self.concrete, opr)(other.concrete),
             z3.simplify(getattr(self.symbolic, opr)(other.symbolic)),
@@ -76,13 +89,14 @@ class State:
         self.push(self.locals[index])
 
     def store(self, index):
-        # take from the stack 
+        # take from the stack
         self.locals[index] = self.stack.pop()
 
     def copy(self):
-        #copy the state so there are no problems with by pointer passages
+        # copy the state so there are no problems with by pointer passages
         return State(self.locals.copy(), self.stack.copy())
-    #takes 2 states and returns 1 state
+
+    # takes 2 states and returns 1 state
     def diff(self, otherState):
         locals_diff = {}
         for i, local in self.locals.items():
@@ -91,6 +105,7 @@ class State:
         for i, s in enumerate(self.stack):
             stack_diff.append(s.binary("sub", otherState.stack[i]))
         return State(locals_diff, stack_diff)
+
     # not implemented
     def skipLoop(self, diffState, iterations):
         for i, local in self.locals.items():
