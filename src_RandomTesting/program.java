@@ -11,7 +11,7 @@ public class program {
 // You can owe a maximum 100 DKK to the bank, if you owe more than 100 the program should return the quantity of money that you owe and stop the transactions
 // This is just an example, I want as output a number different than 0
 // The program goes out of range (output=0) only if CostPerProduct*QuantityOfProducts=50
-    public static int ShowBalance(int[] arguments) {
+    public static int example_loop_ShowBalance(int[] arguments) { // EXAMPLE_LOOP.JAVA
     	int CostPerProduct = arguments[0];
         int QuantityOfProducts = arguments[1];
     	assert CostPerProduct>0;
@@ -30,8 +30,48 @@ public class program {
         return money;
     }
 
+	public static int longexample_outofrange_ShowBalance(int[] arguments) { // LONGEXAMPLE_OUTOFRANGE.JAVA
+    	
+    	int CostPerProduct = arguments[0];
+        int QuantityOfProducts = arguments[1];
+    	assert CostPerProduct>0;
+        assert QuantityOfProducts>0;
+        int cost = CostPerProduct*QuantityOfProducts;
+        int money = 50000;
+    	
+    	for (int transaction=0; transaction<1000; transaction++) {
+            if (money<-1000) {
+                return money; }
+            else if ((money-cost) == 1) {     
+                money = money-cost-2;  }  
+            else {
+                money = money - cost; }
+        }
+        return money;
+}
 
-    public static int calculateEfficiency(int [] arguments) {
+	public static int longexample_inrange_ShowBalance(int[] arguments) { // LONGEXAMPLE_INRANGE.JAVA, does not create CSV file because too much time
+			
+		int CostPerProduct = arguments[0];
+        int QuantityOfProducts = arguments[1];
+    	assert CostPerProduct>0;
+        assert QuantityOfProducts>0;
+		int cost = CostPerProduct*QuantityOfProducts;
+		int money = 50000;
+		
+		for (int transaction=0; transaction<1000; transaction++) {
+			if (money<-100) {
+				return money; }
+			else if ((money-cost) == 0) {     // This if statement is build to make it not go out of range - the returned money will never be 0
+				money = money-cost-1;  }   // Money will be -1 here and we will never go out of range
+			else {
+				money = money - cost; }
+		}
+		return money;
+	}
+
+
+    public static int calculateEfficiency(int [] arguments) {	// EXAMPLE_ANALYSIS.JAVA
     	// quantityOfInsulant is a integer that tells us how much insulant is used. the smaller it is the better it is
     	// classEfficiency is the efficiency of the material, the colorGrade and the exposure are based on the color of the wall
     	// and the exposure to the sun
@@ -75,4 +115,7 @@ public class program {
     	}
     	
     }
+
+
+
 }

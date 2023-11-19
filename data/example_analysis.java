@@ -1,6 +1,3 @@
-
-import static java.lang.Math.*;
-
 public class example_analysis {
     public static void main(String[] args) {
     	// this class calculates the efficiency of a wall, classyfing it
