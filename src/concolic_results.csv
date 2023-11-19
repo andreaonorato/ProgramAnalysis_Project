@@ -1,0 +1,6 @@
+../data/example_loop.jsonShowBalance,True,0.07776069641113281,0.0
+../data/example_loop.jsonShowBalance,False,0.03690314292907715,0.0
+../data/example_analysis.jsoncalculateEfficiency,True,0.038898468017578125,0.0
+../data/example_analysis.jsoncalculateEfficiency,False,0.03294730186462402,0.0
+../data/longexample_outofrange.jsonShowBalance,True,0.4029228687286377,0.0
+../data/longexample_outofrange.jsonShowBalance,False,1.1190061569213867,0.0

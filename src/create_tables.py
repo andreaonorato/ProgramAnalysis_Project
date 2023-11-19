@@ -40,6 +40,6 @@ for (path, method), limits in test_data:
 
         stdev = statistics.pstdev(execution_time)
         mean = statistics.mean(execution_time)
-        with open("results.csv", "a", newline="") as r:
+        with open("concolic_results.csv", "a", newline="") as r:
             writer = csv.writer(r, delimiter=",")
             writer.writerow([path + method, skip_loops, mean, stdev])
