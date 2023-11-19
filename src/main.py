@@ -1,5 +1,6 @@
 from filereader import find_method
 import z3
+import time
 from pathlib import Path
 from utils import Bytecode, ConcolicValue, State
 
@@ -8,21 +9,33 @@ MIN_SKIP_SIZE = 3
 
 
 class Concolic:
+
+    #this is the object, returns None
     def __init__(self, target) -> None:
+        # one of the parameters is z3.solver
         self.solver = z3.Solver()
+        # this is a list of the parameters (inputs) of the analyzed function
         self.params = [z3.Int(f"p{i}") for i, _ in enumerate(target["params"])]
         self.bytecode = [Bytecode(b) for b in target["code"]["bytecode"]]
 
     def run(self, output_range, skip_loops=True, k=100):
-        # print(bytecode)
-
+        # check the satisfability of a set of constrains using z3 solver
+        # whille "set of contraints" is satisfiable
         while self.solver.check() == z3.sat:
-            model = self.solver.model()
+            model = self.solver.model() # A model in Z3 is an assignment of values to variables that satisfies the given logical conditions.
             input = [
+                #list called input with all the values given to the variables to satisfy all the constrains
                 model.eval(p, model_completion=True).as_long() for p in self.params
             ]
-            print(input)
+            #concrete values part of the concolic analysis
+            #print("This is my input ",input, "\n\n\n\n\n\n")
 
+            # Each state has a dict and a list
+            
+            # The dict of the State object is with key-value pairs where the keys are indices and the values are instances of ConcolicValue initialized with values from input and self.params
+            # The empty list is the stack, which is empty at the beginning
+            # State(locals={0: 1 (p0), 1: 1 (p1), 2: 10 (p2), 3: 10 (p3)}, stack=[])
+            # State(locals={$k$: $input_mapped_to_variable$ ($params$), etc, stack=[])
             state = State(
                 {
                     k: ConcolicValue(i, p, p)
@@ -30,7 +43,8 @@ class Concolic:
                 },
                 [],
             )
-
+            # print("This is the state: ",state)
+            # K is the depth
             pc = 0
             path = []
             if skip_loops:
@@ -48,13 +62,14 @@ class Concolic:
                 bc = self.bytecode[pc]
                 print("---------")
                 print(pc)
-                print(state)
-                print(bc)
+                print(state, "\n")
+                print(bc, "\n" )
                 print(path)
 
                 pc += 1
-
+                
                 match bc.opr:
+                    
                     case "get":
                         if bc.field["name"] == "$assertionsDisabled":
                             state.push(ConcolicValue.from_const(False, pc - 1))
@@ -145,7 +160,8 @@ class Concolic:
                             )
 
                             raise Exception(
-                                f"Found out of range output {invalid_output} for inputs: {list(zip(self.params,input))}"
+                                f"Found out of range output {invalid_output} for inputs: {list(zip(self.params,input))} in {time.time()-start_time} seconds"
+                                
                             )
                         result = f"returned {return_concolic}"
                         break
@@ -294,12 +310,16 @@ class Concolic:
             else:
                 self.skipLoop[pc] = -1
 
-
+# FIRST LINE OF THE MAIN
+#find_method("FileName","MethodName")
+start_time = time.time()
 c = Concolic(find_method(("example_loop", "ShowBalance")))
 c.run([("__ne__", z3.IntVal(0))], skip_loops=True, k=100)
 
+# we want an output greater than 0, so __ge__
 # c = Concolic(find_method(("example_analysis", "calculateEfficiency")))
 # c.run([("__ge__", z3.IntVal(0)), ("__lt__", z3.IntVal(100))], False)
 
 # c = Concolic(find_method(("example_NoOutOfRange", "ShowBalance")))
 # c.run(("__ne__", z3.IntVal(0)))
+
