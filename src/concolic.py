@@ -2,7 +2,7 @@ import z3
 from utils import Bytecode, ConcolicValue, State, find_method, translate_condition
 
 LOOP_UNTIL_SKIP = 2
-MIN_SKIP_SIZE = 3
+MIN_SKIP_SIZE = 4
 
 
 class Concolic:
@@ -59,11 +59,11 @@ class Concolic:
                     self.stateMap[pc].append(state.copy())
 
                 bc = self.bytecode[pc]
-                print("---------")
-                print(pc)
-                print(state)
-                print(bc)
-                print(path)
+                # print("---------")
+                # print(pc)
+                # print(state)
+                # print(bc)
+                # print(path)
 
                 pc += 1
 
@@ -206,7 +206,7 @@ class Concolic:
 
             self.solver.add(z3.Not(path_constraint))
         if not self.solver.check() == z3.sat:
-            print(f"No out of range values")
+            # print(f"No out of range values")
             return False, []
 
     def skip_iterations(self, state, pc, bc, path):
