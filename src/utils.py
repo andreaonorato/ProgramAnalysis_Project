@@ -118,22 +118,39 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 
-def linearRegression(x_values, y_values):
+def linearRegression(x_values, y_values, iterations):
     # Reshape the input variable to a 2D array
     x_values = np.reshape(x_values, (-1, 1))
 
     # Create a linear regression model and fit the data
     model = LinearRegression()
     model.fit(x_values, y_values)
-    return model
+    expr = z3.IntVal(model.intercept_)
+    for i, coef in enumerate(model.coef_):
+        expr = expr + coef * iterations ** (i + 1)
+    return expr
 
 
-def solveIterations(model, desired):
-    return model.predict(desired)
-
-
-def predict_iterations(stateMap, pc, desired):
-    x_values = [state.stack[0] for state in stateMap[pc]]
+def predict_iterations_if(stateMap, pc, operator, negative):
+    x_values = [state.stack[0].concrete for state in stateMap[pc]]
+    x2_values = [state.stack[1].concrete for state in stateMap[pc]]
     y_values = list(range(0, len(stateMap[pc])))
-    m = linearRegression(x_values, y_values)
-    return solveIterations(m, desired)
+    iterations = z3.Int(f"x{pc}")
+    f1 = linearRegression(x_values, y_values, iterations)
+    f2 = linearRegression(x2_values, y_values, iterations)
+    loop_solver = z3.Solver()
+
+    expr = getattr(f1, operator)(f2)
+    if negative:
+        expr = expr = z3.Not(expr)
+    loop_solver.add(
+        z3.And(
+            iterations > 0,
+            expr,
+        )
+    )
+    if loop_solver.check() == z3.sat:
+        m = loop_solver.model()
+        return m[iterations].as_long()
+    else:
+        return -1

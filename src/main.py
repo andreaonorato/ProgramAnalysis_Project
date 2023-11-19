@@ -1,7 +1,7 @@
 from filereader import find_method
 import z3
 from pathlib import Path
-from utils import Bytecode, ConcolicValue, State
+from utils import Bytecode, ConcolicValue, State, predict_iterations_if
 
 LOOP_UNTIL_SKIP = 2
 MIN_SKIP_SIZE = 3
@@ -69,11 +69,9 @@ class Concolic:
         if constant:
             DICT = {"ne": "__ne__", "gt": "__gt__", "ge": "__ge__", "le": "__le__"}
             if bc.condition in DICT:
-                opr = DICT[bc.condition]
-
+                operator = DICT[bc.condition]
 
             state_difference = state.diff(self.stateMap[pc][-2])
-            i = predict_iterations(self.stateMap,pc)
 
             if not ifz:
                 v2_delta = state_difference.pop()
@@ -81,38 +79,39 @@ class Concolic:
 
             v1_delta = state_difference.pop()
             v1 = state.pop()
-            loop_solver = z3.Solver()
             iterations = z3.Int(f"x{pc}")
-
             if ifz:
-                expr = getattr(v1.concrete + v1_delta.concrete * iterations, opr)(0)
-                path_expr = getattr(v1.symbolic + v1_delta.symbolic * iterations, opr)(
-                    0
-                )
+                # expr = getattr(v1.concrete + v1_delta.concrete * iterations, opr)(0)
+                path_expr = getattr(
+                    v1.symbolic + v1_delta.symbolic * iterations, operator
+                )(0)
 
             else:
-                expr = getattr(v1.concrete + v1_delta.concrete * iterations, opr)(
-                    v2.concrete + v2_delta.concrete * iterations
-                )
-                path_expr = getattr(v1.symbolic + v1_delta.symbolic * iterations, opr)(
-                    v2.symbolic + v2_delta.symbolic * iterations
-                )
+                # expr = getattr(v1.concrete + v1_delta.concrete * iterations, opr)(
+                #     v2.concrete + v2_delta.concrete * iterations
+                # )
+                path_expr = getattr(
+                    v1.symbolic + v1_delta.symbolic * iterations, operator
+                )(v2.symbolic + v2_delta.symbolic * iterations)
 
             if negativeTest:
-                expr = z3.Not(expr)
+                # expr = z3.Not(expr)
                 path_expr = z3.Not(path_expr)
-            loop_solver.add(
-                z3.And(
-                    iterations > 0,
-                    expr,
-                )
-            )
+            # loop_solver.add(
+            #     z3.And(
+            #         iterations > 0,
+            #         expr,
+            #     )
+            # )
             self.skippedPathExpr[pc] = path_expr
-            if loop_solver.check() == z3.sat:
-                m = loop_solver.model()
-                self.skipLoop[pc] = m[iterations].as_long()
-            else:
-                self.skipLoop[pc] = -1
+            # if loop_solver.check() == z3.sat:
+            #     m = loop_solver.model()
+            #     self.skipLoop[pc] = m[iterations].as_long()
+            # else:
+            #     self.skipLoop[pc] = -1
+            self.skipLoop[pc] = predict_iterations_if(
+                self.stateMap, pc, operator, negativeTest
+            )
 
     def run(self, output_range, k=100):
         # print(bytecode)
