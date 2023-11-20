@@ -14,8 +14,8 @@ public class random_testing {
     public static void main(String[] args) {
 		Random random = new Random();
 		Scanner scanner = new Scanner(System.in);
-		String NameFunction = "example_loop_ShowBalance";
-		int NumberInputs = 2;
+		String NameFunction = "test";
+		int NumberInputs = 3;
 		System.out.println("What is your Lower Bound of out of range (-inf for -infinity): ");   // In our example ShowBalance write 0
 		String LowerBoundOutOfRangeValue = scanner.next();
 		System.out.println("What is your Upper Bound of out of range (+inf for +infinity): ");   // In our example ShowBalance write 0

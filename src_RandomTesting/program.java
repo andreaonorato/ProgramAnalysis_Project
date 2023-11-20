@@ -30,6 +30,26 @@ public class program {
         return money;
     }
 
+	public static int test(int arguments[]) {
+		//this function allows only [0,inf)
+		//deve avere 3/4 errori
+		int coeff1 = arguments[0];
+		int coeff2 = arguments[1];
+		int coeff3 = arguments[2];
+		if (coeff1<=0 || coeff2<=0 || coeff3<=0 || coeff3>=9005 || coeff1>400 || coeff2>400){
+			return 1;
+		}
+		int calculated = coeff1*coeff2*coeff3;
+		int sum = (coeff1 + coeff2 + coeff3)*4;
+		if (calculated < 27000) {
+			calculated = calculated + 4500;
+			return calculated;
+		}else {
+			calculated = calculated - sum;
+			return calculated;
+		}
+	}
+
 	public static int longexample_outofrange_ShowBalance(int[] arguments) { // LONGEXAMPLE_OUTOFRANGE.JAVA
     	
     	int CostPerProduct = arguments[0];
