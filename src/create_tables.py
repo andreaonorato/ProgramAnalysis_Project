@@ -9,15 +9,15 @@ from utils import find_method
 
 
 test_data = [
-    (("../data/example_loop.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
-    (
-        ("../data/TestLong.json", "test"),
-        [("__ge__", z3.IntVal(-1))],
-    ),
+    # (("../data/example_loop.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
+    # (
+    #     ("../data/TestLong.json", "test"),
+    #     [("__ge__", z3.IntVal(-1))],
+    # ),
     # (("../data/example_NoOutOfRange.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
     (
-        ("../data/longexample_outofrange.json", "ShowBalance"),
-        [("__ne__", z3.IntVal(0))],
+        ("../data/TestLong.json", "test"),
+        [("__ge__", z3.IntVal(0))],
     ),
 ]
 

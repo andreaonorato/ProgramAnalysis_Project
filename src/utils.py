@@ -14,7 +14,13 @@ def find_method(path, method):
 
 
 def translate_condition(copr):
-    DICT = {"ne": "__ne__", "gt": "__gt__", "ge": "__ge__", "le": "__le__"}
+    DICT = {
+        "ne": "__ne__",
+        "gt": "__gt__",
+        "ge": "__ge__",
+        "le": "__le__",
+        "lt": "__lt__",
+    }
     if copr in DICT:
         return DICT[copr]
     else:
