@@ -1,0 +1,5 @@
+Function name:,Concolic Testing RunTime NO LOOP,Concolic Testing RunTime YES LOOP,Random Testing
+calculateEfficiency,0.038898468017578125,0.03294730186462402,1.787305652
+longexample_outofrange_ShowBalance,0.4029228687286377,1.1190061569213867,0.636102352
+example_loop_ShowBalance,0.07776069641113281,0.03690314292907715,0.806837766
+longexample_inrange_ShowBalance,Paul fill this,Paul fill this,infinity
