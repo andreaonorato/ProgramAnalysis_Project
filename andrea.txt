@@ -1,0 +1,20 @@
+deltatr, time to create 10^8 input combinations and run the function:
+
+Function:test	 mean:5.977	var:0.002
+Function:calculateEfficiency	mean:7.698	var:0.009
+Function:example_loop_ShowBalance	mean:4.187	var:0.005
+Function:longexample_outofrange_ShowBalance	mean:4.084	var:0.005
+
+tc, time for concolic to find out-of-range output
+Function:test	mean:0.183	var:0.002
+Function:calculateEfficiency	mean:0.034	var:0.001
+Function:example_loop_ShowBalance	mean:0.035	var:0.001
+Function:longexample_outofrange_ShowBalance	mean:1.098	var:0.001
+
+dr,
+Function:test	dr:3.266*10^-7	var:5.972*10^-18
+Function:calculateEfficiency	dr:2.264*10^-6	var:7.785*10^-16
+Function:example_loop_ShowBalance	dr:1.196*10^-6	var:4.082*10^-16
+Function:longexample_outofrange_ShowBalance	dr:3.719*10^-8	var:4.147*10^-19
+
+If dr is bigger concolic it's the best option

@@ -14,8 +14,8 @@ public class random_testing {
     public static void main(String[] args) {
 		Random random = new Random();
 		Scanner scanner = new Scanner(System.in);
-		String NameFunction = "test";
-		int NumberInputs = 3;
+		String NameFunction = "longexample_outofrange_ShowBalance";
+		int NumberInputs = 2;
 		System.out.println("What is your Lower Bound of out of range (-inf for -infinity): ");   // In our example ShowBalance write 0
 		String LowerBoundOutOfRangeValue = scanner.next();
 		System.out.println("What is your Upper Bound of out of range (+inf for +infinity): ");   // In our example ShowBalance write 0
@@ -52,6 +52,7 @@ public class random_testing {
             for (Method method : methods) {
                 if (method.getName().equals(NameFunction)) {
 					startTime = System.nanoTime(); 	// Start the timer
+				//	while (true) {
 					while (result1>upperBound || result1<lowerBound) {    	// Because we know it goes out of range if the output of the function is 0
 						argumentsList.clear();
 						for (int i=0; i<NumberInputs; i++) {
@@ -63,6 +64,8 @@ public class random_testing {
 						Object result = method.invoke(null, argumentsArray);	// Invoke the method
 						result1 = (int) result;		// Casting from Object to int
 						tries++;	// Adding one trie and repeating if it's not out of range
+					//	if (tries>100000000) {
+						//	break; }
                 	}
            		 }
        		 }

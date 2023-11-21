@@ -30,7 +30,7 @@ public class program {
         return money;
     }
 
-	public static int test(int arguments[]) {
+	public static int test(int arguments[]) { // TESTLONG.JAVA
 		//this function allows only [0,inf)
 		//deve avere 3/4 errori
 		int coeff1 = arguments[0];
