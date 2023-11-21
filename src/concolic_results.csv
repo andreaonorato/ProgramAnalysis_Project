@@ -1,6 +1,8 @@
-../data/example_loop.jsonShowBalance,True,0.07776069641113281,0.0
-../data/example_loop.jsonShowBalance,False,0.03690314292907715,0.0
-../data/example_analysis.jsoncalculateEfficiency,True,0.038898468017578125,0.0
-../data/example_analysis.jsoncalculateEfficiency,False,0.03294730186462402,0.0
-../data/longexample_outofrange.jsonShowBalance,True,0.4029228687286377,0.0
-../data/longexample_outofrange.jsonShowBalance,False,1.1190061569213867,0.0
+../data/example_analysis.jsoncalculateEfficiency,True,0.03821148157119751,0.004257682282074399
+../data/example_analysis.jsoncalculateEfficiency,False,0.03853022336959839,0.0043943182105474305
+../data/TestLong.jsontest,True,0.18613573789596558,0.04281240618451197
+../data/TestLong.jsontest,False,0.18933527708053588,0.04478739074927911
+../data/example_loop.jsonShowBalance,True,0.08795544385910034,0.004198996125197923
+../data/example_loop.jsonShowBalance,False,0.036572475433349606,0.0015337360376222967
+../data/longexample_outofrange.jsonShowBalance,True,0.37753068208694457,0.00965858501960186
+../data/longexample_outofrange.jsonShowBalance,False,0.9701605892181396,0.025693500313401132

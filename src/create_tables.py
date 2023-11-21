@@ -9,15 +9,22 @@ from utils import find_method
 
 
 test_data = [
-    # (("../data/example_loop.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
-    # (
-    #     ("../data/TestLong.json", "test"),
-    #     [("__ge__", z3.IntVal(-1))],
-    # ),
-    # (("../data/example_NoOutOfRange.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
+    (
+        ("../data/example_analysis.json", "calculateEfficiency"),
+        [("__ge__", z3.IntVal(0))],
+    ),
     (
         ("../data/TestLong.json", "test"),
         [("__ge__", z3.IntVal(-1))],
+    ),
+    # (("../data/example_NoOutOfRange.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
+    (
+        ("../data/example_loop.json", "ShowBalance"),
+        [("__ne__", z3.IntVal(0))],
+    ),
+    (
+        ("../data/longexample_outofrange.json", "ShowBalance"),
+        [("__ne__", z3.IntVal(0))],
     ),
 ]
 
@@ -25,8 +32,8 @@ test_data = [
 for (path, method), limits in test_data:
     c = Concolic(find_method(path, method))
     for skip_loops in [True, False]:
+        execution_time = []
         for i in range(100):
-            execution_time = []
             start_time = time.time()
             out_of_range, inputs = c.run(limits, skip_loops, k=20000)
 
