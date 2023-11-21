@@ -9,36 +9,37 @@ from utils import find_method
 
 
 test_data = [
-    (
-        ("../data/example_analysis.json", "calculateEfficiency"),
-        [("__ge__", z3.IntVal(0))],
-    ),
-    (
-        ("../data/TestLong.json", "test"),
-        [("__ge__", z3.IntVal(-1))],
-    ),
-    # (("../data/example_NoOutOfRange.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
-    (
-        ("../data/example_loop.json", "ShowBalance"),
-        [("__ne__", z3.IntVal(0))],
-    ),
-    (
-        ("../data/longexample_outofrange.json", "ShowBalance"),
-        [("__ne__", z3.IntVal(0))],
-    ),
+    # (
+    #     ("../data/example_analysis.json", "calculateEfficiency"),
+    #     [("__ge__", z3.IntVal(0))],
+    # ),
+    # (
+    #     ("../data/TestLong.json", "test"),
+    #     [("__ge__", z3.IntVal(-1))],
+    # ),
+    (("../data/example_NoOutOfRange.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
+    (("../data/longexample_inrange.json", "ShowBalance"), [("__ne__", z3.IntVal(0))]),
+    # (
+    #     ("../data/example_loop.json", "ShowBalance"),
+    #     [("__ne__", z3.IntVal(0))],
+    # ),
+    # (
+    #     ("../data/longexample_outofrange.json", "ShowBalance"),
+    #     [("__ne__", z3.IntVal(0))],
+    # ),
 ]
 
 
 for (path, method), limits in test_data:
     c = Concolic(find_method(path, method))
-    for skip_loops in [True, False]:
+    for skip_loops in [False]:
         execution_time = []
-        for i in range(100):
+        for i in range(10):
             start_time = time.time()
             out_of_range, inputs = c.run(limits, skip_loops, k=20000)
 
             run_time = time.time() - start_time
-            if not out_of_range:
+            if out_of_range:
                 print("FAIL")
                 break
             execution_time.append(run_time)

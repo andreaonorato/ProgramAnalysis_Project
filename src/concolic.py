@@ -306,7 +306,7 @@ class Concolic:
                 self.skipLoop[pc] = -1
 
 
-c = Concolic(find_method("../data/example_loop.json", "ShowBalance"))
+c = Concolic(find_method("../data/longexample_inrange.json", "ShowBalance"))
 
 c.run(
     [("__ne__", z3.IntVal(0))],
