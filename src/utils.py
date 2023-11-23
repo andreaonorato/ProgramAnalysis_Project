@@ -68,7 +68,6 @@ class ConcolicValue:
 
     def compare(self, copr, other):
         # ne = not equal, gt = greater than, ge = greater than or equal, le = less than or equal
-        # we are missing less than (lss)
         opr = translate_condition(copr)
         return ConcolicValue(
             getattr(self.concrete, opr)(other.concrete),
@@ -112,7 +111,6 @@ class State:
             stack_diff.append(s.binary("sub", otherState.stack[i]))
         return State(locals_diff, stack_diff)
 
-    # not implemented
     def skipLoop(self, diffState, iterations):
         for i, local in self.locals.items():
             self.locals[i] = local.binary(

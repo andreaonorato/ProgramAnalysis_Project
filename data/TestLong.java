@@ -1,13 +1,13 @@
 public class TestLong {
 	public static void main(String args[]) {
-		System.out.println(test(4,1,9000));
+		System.out.println(no_loop(4,1,9000));
 	}
 
 
 
-public static int test(int coeff1, int coeff2, int coeff3) {
+public static int no_loop(int coeff1, int coeff2, int coeff3) {
 	//this function allows only [0,inf)
-	//deve avere 3/4 errori
+
 	assert coeff1>1;
 	assert coeff2>1;
 	assert coeff3>1;

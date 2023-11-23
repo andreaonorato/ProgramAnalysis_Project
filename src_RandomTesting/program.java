@@ -30,7 +30,7 @@ public class program {
         return money;
     }
 
-	public static int test(int arguments[]) { // TESTLONG.JAVA
+	public static int no_loop(int arguments[]) { // TESTLONG.JAVA
 		//this function allows only [0,inf)
 		//deve avere 3/4 errori
 		int coeff1 = arguments[0];
@@ -70,7 +70,7 @@ public class program {
         return money;
 }
 
-	public static int longexample_inrange_ShowBalance(int[] arguments) { // LONGEXAMPLE_INRANGE.JAVA, does not create CSV file because too much time
+	public static int longexample_inrange_ShowBalance(int[] arguments) { // LONGEXAMPLE_INRANGE.JAVA, does not create CSV file because it runs infinitely
 			
 		int CostPerProduct = arguments[0];
         int QuantityOfProducts = arguments[1];
@@ -89,6 +89,26 @@ public class program {
 		}
 		return money;
 	}
+
+	public static int example_NoOutOfRange_ShowBalance(int[] arguments) { // example_NoOutOfRange
+    	
+		int CostPerProduct = arguments[0];
+        int QuantityOfProducts = arguments[1];
+    	assert CostPerProduct>0;
+        assert QuantityOfProducts>0;
+        int cost = CostPerProduct*QuantityOfProducts;
+        int money = 500;
+    	
+    	for (int transaction=0; transaction<10; transaction++) {
+            if (money<-100) {
+                return money; }
+            else if ((money-cost) == 0) {     // This if statement is build to make it not go out of range - the returned money will never be 0
+                money = money-cost-1;  }   // Money will be -1 here and we will never go out of range
+            else {
+                money = money - cost; }
+        }
+        return money;
+}
 
 
     public static int calculateEfficiency(int [] arguments) {	// EXAMPLE_ANALYSIS.JAVA

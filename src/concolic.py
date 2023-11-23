@@ -27,7 +27,6 @@ class Concolic:
                 for p in self.params
             ]
             # concrete values part of the concolic analysis
-            # print("This is my input ",input, "\n\n\n\n\n\n")
 
             # Each state has a dict and a list
 
@@ -42,7 +41,7 @@ class Concolic:
                 },
                 [],
             )
-            # print("This is the state: ",state)
+
             # K is the depth
             pc = 0
             path = []
@@ -153,9 +152,7 @@ class Concolic:
                                 invalid_return.eval(p, model_completion=True).as_long()
                                 for p in self.params
                             ]
-                            # invalid_output = invalid_return.eval(
-                            #     return_concolic.symbolic
-                            # )
+
                             return True, input
                             # raise Exception(
                             #     f"Found out of range output {invalid_output} for inputs: {list(zip(self.params,input))}"
